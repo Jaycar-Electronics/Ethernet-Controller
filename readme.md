@@ -1,107 +1,99 @@
-# Arduino Ethernet IO Controller
+# Ethernet IO Controller
 
-Here’s a little project that isn’t hard to build, but really  has unlimited uses. Here, the Arduino uses an Ethernet Shield to serve up web  pages with info about the current state of the IO pins, and when a user clicks  on a link on the web page, they can change the digital outputs. Sounds simple,  but it means that you can control simple devices from any browser which can  connect to the Ethernet Shield.
+This is a fairly simple project using our [XC4412](https://jaycar.com.au/p/XC4412) Ethernet shield; It's not too hard to program but it has fairly unlimited uses. Great starting point for any IoT network or home-automation setup.
 
-Thanks to the company VPN, someone 1000km away is currently  making lights flash on my desk, and he can see what temperature it is on my desk. But you could also make it  externally accessible by changing the port forwarding settings on your router  (be careful though- there’s no password, so pretty much anyone can access the  Arduino then).
+With this project, the Ethernet shield is used to serve up a web-page with info about the current state of the IO Pins, then when a user clicks on a link, they can turn the pins `ON` or `OFF`.
 
-What’s it good for? Turn on the lights in another room  (relay module). See if someone has left the fridge door open (analog light or  temperature sensor).  See if it’s raining  (go outside, or use a rain sensor module). Pretty much anything you can control  with a digital on-off output, or read with a 0-5V analog input can be connected  to this project.
+This works out to be a little simpler than using something like the [XC4411](https://jaycar.com.au/p/XC4411) Uno with WiFi, due to it being all controlled by the one board and using the `Ethernet.h` library bundled with the Arduino IDE, however you will have to manually `println()` each line of HTML code, so it's more for easy information without looking good. You won't be able to write up a nice webpage to send.
 
-## Components
+_Word of warning_ as this project doesn't require a password, so protection of the network will be up to you.
 
-|Qty| Code | Description |
-|---|---|---|
-|1 | [XC4410](http://jaycar.com.au/p/XC4410) | uno main board
-|1 | [XC4412](http://jaycar.com.au/p/XC4412) | Ethernet shield
+## Bill of Materials
 
+| Qty | Code                                    | Description     |
+| --- | --------------------------------------- | --------------- |
+| 1   | [XC4410](http://jaycar.com.au/p/XC4410) | Uno main board  |
+| 1   | [XC4412](http://jaycar.com.au/p/XC4412) | Ethernet shield |
 
-You may need some of the following items:
+### You may also need
 
-[XC4428 RGB LED module](https://jaycar.com.au/p/XC4428)
-- an easy way to test if the digital outputs are working
-
-[XC4538 Analog Temperature Sensor Module](https://jaycar.com.au/p/XC4538)
-- to test analog inputs
-
-[YN8205 10m Ethernet Cable](https://jaycar.com.au/p/YN8205)
-- to connect to your router
+- [YN8205 10m Ethernet Cable](https://jaycar.com.au/p/YN8205)
 
 ## Assembly
 
-There’s not much assembly needed, to get the basic sketch working, just plug the Ethernet Shield into the top of the Uno, and attach a  USB and Ethernet cable. The below picture shows the LED Module plugged straight  into D4-D7, and the Temperature Sensor Module plugged into GND, 5V and A0.
+The shield simply just sits on top of the UNO, you will then be able to plug in anything except for pins `10 - 13`. Below is an image we have with an analogue sensor and an RGB light.
 
-![](images/clip-image002-0004.jpg)
+![connections](images/connections.jpg)
 
-## Operation
+## Use and Source code discussion
 
-Once the sketch has been successfully uploaded to the Uno,  plug in the Ethernet cable, then open the Serial Monitor at 115200 baud. This  will print out the IP address that the Controller has been given. If no IP  address is given, check that DHCP is active on your router and that MAC address  blocking is not blocking the Controller. The MAC address of the Controller is  specified in the sketch and can be changed if there is a conflict. If you are  looking to run more than one of these on the same network, this will definitely  need to be changed. To keep the IP address the same, use the IP address  reservation feature of the router.
+Once uploaded, set your Serial Monitor to `115200` and reboot the arduino, you should see the IP printed out to the Serial Monitor.
 
-![](images/clip-image002-0005.jpg)
+![serial](images/serial.jpg)
 
-Now open a browser on the network, and type the IP address  into the address bar (ignore the last .):
+Now open a browser on the network, and type the IP address into the address bar (ignore the last .):
 
-![](images/clip-image002-0006.jpg)
+![homepage](images/homepage.jpg)
 
-This is the page you should get. You can control the digital  outputs by clicking the [OFF] and [ON] links at the top. Digital 4, 5 and 6  should make the LED light up. The default analog display is raw data, but  clicking on ‘Temperature Data’ will show the inputs converted to degrees.
+This is the page you should get. You can control the digital outputs by clicking the `[OFF]` and `[ON]` links at the top. The default analogue display is raw data, but clicking on 'Temperature Data' will show the inputs converted to degrees.
 
-## Improvements
+You could do a lot more interesting things by changing the sketch. Notice how the Arduino uses query parameters to change the outputs, such as `http://172.16.4.119/?21`
 
-Of course the obvious thing to do is add some more  interesting input and output devices, most of which could be as simple as  plugging in a different Arduino module.
+This is managed by parsing the `int` from the string and managing what pin that is.
 
-You could do a lot more interesting things by changing the  sketch. Notice how the Arduino uses query parameters to change the outputs:
+So you can add extra commands by adding extra `if` statements here. For example:
 
-```
-http://172.16.4.119/?21
-```
-
-activates this line:   `if(parms=="21"){outs[0]=1;}`
-
-So you can add extra commands by adding extra `if`  statements here. For example:
-
-```c
+```cpp
 if(parms=="debug"){
   Serial.println("Debug");
 }
 ```
-will print *Debug* on the serial monitor if the page `http://172.16.4.119/?debug`
+
+will print _Debug_ on the serial monitor if the page `http://172.16.4.119/?debug`
 is accessed.
 
-At the moment though, these commands will be hidden, because  there isn’t a link for them.
+At the moment though, these commands will be hidden, because there isn't a link for them.
 
-To add a link to the page that is served up, you need to add  the following to the section that ‘prints’ out the web page to the browser:
+To add a link to the page that is served up, you need to add the following to the section that ‘prints' out the web page to the browser:
 
-```c
+```cpp
   client.print("<a href=\"");
   client.print(fname);
   client.print("?debug\">debug</a><br>");
 ```
 
-Note that the first `debug` is the name of the command used  in the `if` statement above, while the second `debug` is what appears as the  link on the screen.
-Of course you could add a library which reads a non-analog  sensor (eg a digital humidity sensor) and display it to the web page as well-  or even get the Arduino to process the sensor inputs and automatically control  the outputs, as well as allowing remote control from the web interface.
+Note that the first `debug` is the name of the command used in the `if` statement above, while the second `debug` is what appears as the link on the screen.
 
-Another option could be to use an Arduino as a web client  (eg Files>Examples>Ethernet>WebClient), and get it to trigger the  commands and read back the data. That gives the option of manual or automatic  control.
-
-We’re looking at getting a Wifi shield soon, so look out for  a Wifi version of this project too.
-
-This is a useful link if you want to understand the HTML  generated by the Arduino:
+This is a useful link if you want to understand the HTML generated by the Arduino:
 
 [http://www.simplehtmlguide.com/cheatsheet.php](http://www.simplehtmlguide.com/cheatsheet.php)
 
-Here is a typical sample of the HTML generated by the  sketch:
+Here is a typical sample of the HTML generated by the sketch:
 
 ```html
 <h1>ARDUINO IO CONTROL</h1>
-Digital 2 is ON  <a href="?20">[OFF]</a><a  href="?21">[ON]</a><br>
-Digital 3 is OFF <a href="?30">[OFF]</a><a  href="?31">[ON]</a><br>
-Digital 4 is OFF <a href="?40">[OFF]</a><a  href="?41">[ON]</a><br>
-Digital 5 is ON  <a href="?50">[OFF]</a><a  href="?51">[ON]</a><br>
-Digital 6 is OFF <a href="?60">[OFF]</a><a  href="?61">[ON]</a><br>
-Digital 7 is OFF <a href="?70">[OFF]</a><a  href="?71">[ON]</a><br>
-<br>Analog 0:  516
-<br>Analog 1:  391
-<br>Analog 2:  315
-<br>Analog 3:  264
-<br>Analog 4:  227
-<br>Analog 5:  244
-<br><a href="raw.htm">Raw  Data</a>
-<br><a href="temp.htm">Temperature Data</a>
+Digital 2 is ON <a href="?20">[OFF]</a><a href="?21">[ON]</a><br />
+Digital 3 is OFF <a href="?30">[OFF]</a><a href="?31">[ON]</a><br />
+Digital 4 is OFF <a href="?40">[OFF]</a><a href="?41">[ON]</a><br />
+Digital 5 is ON <a href="?50">[OFF]</a><a href="?51">[ON]</a><br />
+Digital 6 is OFF <a href="?60">[OFF]</a><a href="?61">[ON]</a><br />
+Digital 7 is OFF <a href="?70">[OFF]</a><a href="?71">[ON]</a><br />
+Analog 0:  516 <br />
+Analog 1:  391 <br />
+Analog 2:  315 <br />
+Analog 3: 264 <br />
+Analog 4:  227 <br />
+Analog 5:  244 <br />
+<a href="raw.htm">Raw Data</a> <br />
+<a href="temp.htm">Temperature Data</a>
 ```
+
+## Future Improvements
+
+Of course, this project serves as a basis for your IoT and home automation networks, so you can still use other pins to connect modules to, such as relays, LEDS, and analogue sensors.
+
+Due to the minimisation of the code running solely on the `ATmega328p` There's not a lot of room to put full html code onto (unlike the ESP8266 boards, which have 4 - 8 megabytes of flash). However, this project still has uses for Machine-to-Machine connections and interfaces, as it could become part of a much larger system.
+
+Have a look on the issues tab for issues that we're looking to solve; namely to make the code nicer to read, and perhaps some JSON control. There are libraries out there that perform JSON parsing such as <https://github.com/bblanchon/ArduinoJson>
+
+As long as it compiles and fits onto the UNO, we'll be happy to accept pull requests.
